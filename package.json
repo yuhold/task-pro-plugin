@@ -1,0 +1,20 @@
+{
+  "name": "task-pro-plugin",
+  "version": "1.0.0",
+  "description": "云崽Bot全能定时任务插件：支持锅巴配置，自定义群签到、点赞、群发消息、好友续火",
+  "main": "index.js",
+  "type": "module",
+  "author": "yuhold",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yuhold/task-pro-plugin"
+  },
+  "keywords": [
+    "yunzai",
+    "yunzai-bot",
+    "task",
+    "schedule",
+    "guoba-plugin"
+  ]
+}
