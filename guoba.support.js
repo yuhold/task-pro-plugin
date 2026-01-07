@@ -8,47 +8,52 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const configPath = path.join(__dirname, 'config', 'config.json')
 
-// --- 多语言字典 (I18n) ---
+// --- 多语言字典 ---
 const i18n = {
   zh: {
     global: '全局设置',
     debug: '调试日志',
-    debugHelp: '开启后，控制台会输出详细的执行过程（如：正在给谁发消息、防风控等待时间）。',
+    debugHelp: '开启后控制台输出详细执行过程。',
     lang: '界面语言 (Language)',
-    langHelp: '切换语言后，请点击保存并刷新网页生效。',
+    langHelp: '切换后请保存并刷新页面生效。',
     
+    // 提示信息
+    refreshTip: '⚠️ 如果列表为空或不全，说明Bot尚未完全连接QQ。请等待Bot上线后，刷新此网页即可。',
+
     signSection: '① 自动群签到',
     enable: '开启功能',
     cron: 'Cron表达式',
-    cronHelp: '格式：秒 分 时 日 月 星期 (例如: 0 1 0 * * * 表示每天凌晨0点1分)',
+    cronHelp: '格式: 秒 分 时 日 月 星期 (例: 0 1 0 * * *)',
     selectGroup: '选择群聊',
     signMsg: '签到内容',
     
-    likeSection: '② 自动好友点赞',
+    likeSection: '② 自动点赞',
     selectFriend: '选择好友',
-    likeTimes: '每次点赞数',
+    likeTimes: '点赞次数',
     
     gMsgSection: '③ 自动群消息',
     msgList: '消息列表',
-    addHelp: '点击下方 “+” 号添加任务',
+    addHelp: '点击下方 + 添加任务 (若列表为空请刷新网页)',
     sendContent: '发送内容',
     
     fMsgSection: '④ 好友续火/私聊',
     privateList: '私聊列表',
     
-    saveSuccess: '保存成功！如果修改了执行时间(Cron)，请重启 Bot 或发送 #更新任务。'
+    saveSuccess: '保存成功！如果修改了时间请重启Bot或发送 #更新任务'
   },
   en: {
     global: 'Global Settings',
     debug: 'Debug Log',
-    debugHelp: 'Enable detailed logs in the console (e.g., sending status, sleep time).',
+    debugHelp: 'Enable to show detailed logs.',
     lang: 'Language / 界面语言',
-    langHelp: 'Save and refresh the page to apply language changes.',
+    langHelp: 'Save and refresh to apply changes.',
     
+    refreshTip: '⚠️ If the list is empty, Bot is not fully connected. Please refresh this page after Bot is online.',
+
     signSection: '① Auto Group Sign',
     enable: 'Enable',
     cron: 'Cron Expression',
-    cronHelp: 'Format: Sec Min Hour Day Mon Week (Ex: 0 1 0 * * *)',
+    cronHelp: 'Format: Sec Min Hour Day Mon Week',
     selectGroup: 'Select Groups',
     signMsg: 'Sign Message',
     
@@ -58,36 +63,37 @@ const i18n = {
     
     gMsgSection: '③ Auto Group Msg',
     msgList: 'Message List',
-    addHelp: 'Click "+" to add tasks',
-    sendContent: 'Message Content',
+    addHelp: 'Click + to add tasks',
+    sendContent: 'Content',
     
     fMsgSection: '④ Auto Private Msg',
     privateList: 'Private List',
     
-    saveSuccess: 'Saved! Please restart Bot or send #reloadtask if you changed Cron time.'
+    saveSuccess: 'Saved!'
   }
 }
 
-// --- 辅助函数：获取群列表 ---
+// --- 辅助函数：获取列表 (带异常处理) ---
 function getGroupList () {
-  if (!global.Bot || !Bot.gl) return []
-  return Array.from(Bot.gl.values()).map(g => {
-    return { label: `${g.name} (${g.group_id})`, value: g.group_id }
-  })
+  try {
+    if (!global.Bot || !Bot.gl) return []
+    return Array.from(Bot.gl.values()).map(g => {
+      return { label: `${g.name} (${g.group_id})`, value: g.group_id }
+    })
+  } catch (err) { return [] }
 }
 
-// --- 辅助函数：获取好友列表 ---
 function getFriendList () {
-  if (!global.Bot || !Bot.fl) return []
-  return Array.from(Bot.fl.values()).map(f => {
-    return { label: `${f.nickname} (${f.user_id})`, value: f.user_id }
-  })
+  try {
+    if (!global.Bot || !Bot.fl) return []
+    return Array.from(Bot.fl.values()).map(f => {
+      return { label: `${f.nickname} (${f.user_id})`, value: f.user_id }
+    })
+  } catch (err) { return [] }
 }
 
 export function supportGuoba () {
-  // 1. 获取当前配置
   const config = cfg.getDef()
-  // 2. 确定语言 (默认 zh)
   const lang = config.lang === 'en' ? 'en' : 'zh'
   const text = i18n[lang]
 
@@ -100,46 +106,25 @@ export function supportGuoba () {
       link: 'https://github.com/yuhold/task-pro-plugin',
       isV3: true,
       isCaricature: true,
-      description: 'Advanced Schedule Task Plugin / 全能定时任务插件',
+      description: 'Advanced Schedule Task Plugin',
       icon: 'mdi:robot-clock',
       iconColor: '#FF9800'
     },
     configInfo: {
       schemas: [
-        // ================= 全局设置 =================
+        // ================= 全局 =================
         { component: 'Divider', label: text.global },
-        { 
-          field: 'lang', 
-          label: text.lang, 
-          component: 'Select',
-          helpMessage: text.langHelp,
-          componentProps: {
-            options: [
-              { label: '简体中文', value: 'zh' },
-              { label: 'English', value: 'en' }
-            ]
-          }
-        },
-        { 
-          field: 'debug', 
-          label: text.debug, 
-          component: 'Switch',
-          helpMessage: text.debugHelp
-        },
+        { field: 'lang', label: text.lang, component: 'Select', helpMessage: text.langHelp, componentProps: { options: [{ label: '简体中文', value: 'zh' }, { label: 'English', value: 'en' }] } },
+        { field: 'debug', label: text.debug, component: 'Switch', helpMessage: text.debugHelp },
 
-        // ================= 群签到 =================
+        // ================= 签到 =================
         { component: 'Divider', label: text.signSection },
+        { component: 'Title', title: text.refreshTip, style: { fontSize: '12px', color: '#ff5252' } }, // 红色提示文字
         { field: 'sign.enable', label: text.enable, component: 'Switch' },
         { field: 'sign.cron', label: text.cron, component: 'Input', helpMessage: text.cronHelp },
         { 
-          field: 'sign.list', 
-          label: text.selectGroup, 
-          component: 'Select', 
-          componentProps: { 
-            mode: 'multiple', 
-            placeholder: text.selectGroup,
-            options: getGroupList() 
-          }
+          field: 'sign.list', label: text.selectGroup, component: 'Select', 
+          componentProps: { mode: 'multiple', placeholder: text.refreshTip, options: getGroupList() }
         },
         { field: 'sign.msg', label: text.signMsg, component: 'Input' },
 
@@ -148,25 +133,19 @@ export function supportGuoba () {
         { field: 'like.enable', label: text.enable, component: 'Switch' },
         { field: 'like.cron', label: text.cron, component: 'Input' },
         { 
-          field: 'like.list', 
-          label: text.selectFriend, 
-          component: 'Select', 
-          componentProps: { 
-            mode: 'multiple', 
-            placeholder: text.selectFriend,
-            options: getFriendList() 
-          }
+          field: 'like.list', label: text.selectFriend, component: 'Select', 
+          componentProps: { mode: 'multiple', placeholder: text.refreshTip, options: getFriendList() }
         },
         { field: 'like.times', label: text.likeTimes, component: 'InputNumber', componentProps: { min: 1, max: 20 } },
 
-        // ================= 群消息 (表格) =================
+        // ================= 群消息 (修复 GTables) =================
         { component: 'Divider', label: text.gMsgSection },
         { field: 'groupMsg.enable', label: text.enable, component: 'Switch' },
         { field: 'groupMsg.cron', label: text.cron, component: 'Input' },
         {
           field: 'groupMsg.list',
           label: text.msgList,
-          component: 'GTable',
+          component: 'GTables', // <--- 关键修复：加了 's'
           helpMessage: text.addHelp,
           componentProps: {
             columns: [
@@ -176,7 +155,8 @@ export function supportGuoba () {
                 component: 'Select',
                 componentProps: { 
                     options: getGroupList(),
-                    style: { width: '180px' } 
+                    style: { width: '180px' },
+                    placeholder: '请选择'
                 }
               },
               {
@@ -188,14 +168,14 @@ export function supportGuoba () {
           }
         },
 
-        // ================= 私聊消息 (表格) =================
+        // ================= 私聊消息 (修复 GTables) =================
         { component: 'Divider', label: text.fMsgSection },
         { field: 'friendMsg.enable', label: text.enable, component: 'Switch' },
         { field: 'friendMsg.cron', label: text.cron, component: 'Input' },
         {
           field: 'friendMsg.list',
           label: text.privateList,
-          component: 'GTable',
+          component: 'GTables', // <--- 关键修复：加了 's'
           helpMessage: text.addHelp,
           componentProps: {
             columns: [
@@ -205,7 +185,8 @@ export function supportGuoba () {
                 component: 'Select',
                 componentProps: { 
                     options: getFriendList(),
-                    style: { width: '180px' } 
+                    style: { width: '180px' },
+                    placeholder: '请选择'
                 }
               },
               {
@@ -218,12 +199,10 @@ export function supportGuoba () {
         }
       ],
 
-      // 获取数据
       getConfigData () {
         return cfg.getDef()
       },
       
-      // 保存数据
       setConfigData (data, { Result }) {
         fs.writeFileSync(configPath, JSON.stringify(data, null, 2))
         return Result.ok({}, text.saveSuccess)
